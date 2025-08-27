@@ -1,0 +1,96 @@
+-- Copyright 2025 Mitchell. See LICENSE.
+
+--- Checks for application updates and notifies when one is available.
+-- Install this module by copying it into your *~/.textadept/modules/* directory or Textadept's
+-- *modules/* directory, and then putting the following in your *~/.textadept/init.lua*:
+--
+-- ```lua
+-- local update_notifier = require('update_notifier')
+-- ```
+--
+-- There will be a "Help > Check for Updates" menu item. You can also have Textadept check for
+-- updates on startup by setting `update_notifier.check_on_startup`.
+--
+-- This module does not perform any updates. The user is expected to act on any update
+-- notifications.
+-- @module update_notifier
+local M = {}
+
+--- Whether or not to check for updates on startup.
+-- The default value is `false`.
+M.check_on_startup = false
+
+--- Command to send an HTTP request to check for updates.
+-- The default value uses 'curl' on Windows, macOS, and BSD; it uses 'wget' on Linux.
+M.fetch = not LINUX and 'curl -s' or 'wget -q -O-'
+
+--- Command used to open a URL in a browser.
+M.browser = WIN32 and 'start ""' or OSX and 'open' or LINUX and 'xdg-open'
+
+local json = require('update_notifier.dkjson')
+
+--- Checks for updates, shows a message box if there is one, and copies the update URL to the
+-- clipboard so the user can download it.
+function M.check()
+	ui.statusbar_text = _L['Checking for updates...']
+	ui.update()
+
+	local p = assert(os.spawn(M.fetch ..
+		' https://api.github.com/repos/orbitalquark/textadept/releases'), 'unable to check for updates')
+	local releases = json.decode(p:read('a'))
+	if not releases then
+		ui.statusbar_text = _L['Could not fetch update information']
+		return
+	end
+
+	local current_version = _RELEASE:match('%d.+$')
+	local check_time = current_version:find('nightly') and
+		lfs.attributes(_HOME .. '/core/init.lua', 'modification')
+	local stable = not current_version:find('%s') -- space means alpha, beta, or nightly
+
+	for _, release in ipairs(releases) do
+		if release.name == 'nightly' then goto continue end -- ignore nightly releases
+		if release.prerelease and stable then goto continue end -- ignore unstable releases
+		local version = release.name:gsub('_', ' ')
+		if version == current_version then break end -- no new version
+		if check_time then
+			-- The current version is a nightly, so compare the modification time of core/init.lua with
+			-- the release's time.
+			local year, month, day = release.published_at:match('^(%d+)%-(%d+)%-(%d+)')
+			local release_time = os.time{year = year, month = month, day = day}
+			if release_time < check_time then return end -- no new version
+		end
+		ui.statusbar_text = string.format('%s (%s)', _L['Update detected'], version)
+
+		-- Output release notes.
+		buffer.new()
+		buffer:append_text(release.body)
+		buffer:set_save_point()
+		buffer:set_lexer('markdown')
+
+		-- Show notification.
+		local button = ui.dialogs.message{
+			title = _L['Update Available'], text = table.concat({
+				_L['New version'] .. ': ' .. version, --
+				_L['Current version'] .. ': ' .. current_version, --
+				'', -- blank line
+				release.html_url --
+			}, '\n'), button1 = _L['View Update'], button2 = _L['Cancel']
+		}
+		if button == 1 then os.spawn(M.browser .. ' ' .. release.html_url) end
+		do return true end
+
+		::continue::
+	end
+
+	ui.statusbar_text = _L['No update detected']
+end
+events.connect(events.INITIALIZED, function() if M.check_on_startup then M.check() end end)
+
+-- Add a menu entry.
+_L['Check for Updates'] = '_Check for Updates'
+local m_about = textadept.menu.menubar['Help']
+table.insert(m_about, #m_about - 1, {''}) -- separator
+table.insert(m_about, #m_about - 1, {_L['Check for Updates'], M.check})
+
+return M
