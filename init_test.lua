@@ -59,10 +59,10 @@ test('update_notifier.check should view release if selected', function()
 	local current, next_beta, next_stable = '1.0', '2.0 beta', '1.1'
 	local _<close> = test.mock(_G, '_RELEASE', 'Textadept ' .. current)
 	local _<close> = test.mock(os, 'spawn', is_request, mock_spawn(next_beta, next_stable))
-	local click_copy = test.stub(1)
-	local _<close> = test.mock(ui.dialogs, 'message', click_copy)
+	local click_view = test.stub(1)
+	local _<close> = test.mock(ui.dialogs, 'message', click_view)
 	local open_in_browser = test.stub()
-	local is_open_in_browser = function(cmd) return cmd:find(update_notifier.browser) end
+	local is_open_in_browser = function(cmd) return cmd:find(update_notifier.browser, 1, true) end
 	local _<close> = test.mock(os, 'spawn', is_open_in_browser, open_in_browser)
 
 	update_notifier.check()
