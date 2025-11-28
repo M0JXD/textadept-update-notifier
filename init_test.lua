@@ -40,7 +40,6 @@ test('update_notifier.check show show stable -> stable update', function()
 	local _<close> = test.mock(os, 'spawn', is_request, mock_spawn(next_beta, next_stable))
 	local message = test.stub()
 	local _<close> = test.mock(ui.dialogs, 'message', message)
-	local _<close> = test.disable_metafield(ui, 'statusbar_text')
 
 	local update_found = update_notifier.check()
 
@@ -103,7 +102,6 @@ test('update_notifier.check should not show stable -> beta update', function()
 	local message = test.stub()
 	local _<close> = test.mock(ui.dialogs, 'message', message)
 	local _<close> = test.mock(os, 'spawn', is_request, mock_spawn(next_beta, current_stable))
-	local _<close> = test.disable_metafield(ui, 'statusbar_text')
 
 	local update_found = update_notifier.check()
 
@@ -144,7 +142,6 @@ end)
 test('update_notifier.check should handle the lack of an internet connection', function()
 	local no_internet_connection = function() return {read = function() return '' end} end
 	local _<close> = test.mock(os, 'spawn', is_request, no_internet_connection)
-	local _<close> = test.disable_metafield(ui, 'statusbar_text')
 
 	update_notifier.check()
 
