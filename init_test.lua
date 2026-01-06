@@ -1,4 +1,4 @@
--- Copyright 2025 Mitchell. See LICENSE.
+-- Copyright 2025-2026 Mitchell. See LICENSE.
 
 local update_notifier = require('update_notifier')
 local json = require('update_notifier.dkjson')

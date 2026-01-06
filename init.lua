@@ -1,4 +1,4 @@
--- Copyright 2025 Mitchell. See LICENSE.
+-- Copyright 2025-2026 Mitchell. See LICENSE.
 
 --- Checks for application updates and notifies when one is available.
 -- Install this module by copying it into your *~/.textadept/modules/* directory or Textadept's
